@@ -1,17 +1,19 @@
 // TODO: use a more generic numeric data type for the data points throughout the lib
+// TODO: proper dynamic tiling
 // TODO: support dynamic filtering by line-tag
+// TODO: move away from a veq for data point storage and instead use a Deque
 
 #![feature(mpmc_channel)]
 #![feature(let_chains)]
 
 use cli_log::*;
-use std::collections::VecDeque;
+use std::collections::HashMap;
 use std::str::SplitWhitespace;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use std::{io, thread};
 
-use color_eyre::Result;
+use color_eyre::{Result, Section};
 use ratatui::{
     crossterm::event::{self, Event, KeyCode},
     layout::{Constraint, Layout, Rect},
@@ -516,6 +518,53 @@ fn parse_log_line(log_line: &str) -> Option<IntermediateLogRepresentation> {
         graphs,
         lines,
     })
+}
+
+// updates the global registry of data points
+type GraphName = String;
+type LineName = String;
+type DataPoint = (f64, f64);
+
+fn update_state(
+    state: &mut HashMap<GraphName, HashMap<LineName, Vec<DataPoint>>>,
+    new_datum: &IntermediateLogRepresentation,
+) -> Result<()> {
+    let x = new_datum.x.parse::<f64>()?;
+
+    let line_prefix = new_datum.line_tags.join("-");
+
+    for graph in new_datum.graphs.iter() {
+        // TODO: skip this extra lookup
+        if !state.contains_key(graph) {
+            state.insert(graph.clone(), HashMap::new());
+        }
+
+        let graph = state.get_mut(graph).unwrap();
+
+        for (line, y) in new_datum.lines.iter() {
+            let line_name = line_prefix.clone() + &line;
+
+            let y = {
+                let y = y.parse::<f64>();
+                if y.is_err() {
+                    continue;
+                }
+
+                y.unwrap()
+            };
+
+            // TODO: skip extra lookup
+            if !graph.contains_key(&line_name) {
+                graph.insert(line_name.clone(), vec![]);
+            }
+
+            let data = graph.get_mut(&line_name).unwrap();
+
+            data.push((x, y));
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
