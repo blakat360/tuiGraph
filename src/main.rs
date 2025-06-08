@@ -1,17 +1,5 @@
-//! # [Ratatui] Chart example
-//!
-//! The latest version of this example is available in the [examples] folder in the repository.
-//!
-//! Please note that the examples are designed to be run against the `main` branch of the Github
-//! repository. This means that you may not be able to compile with the latest release version on
-//! crates.io, or the one that you have installed locally.
-//!
-//! See the [examples readme] for more information on finding examples that match the version of the
-//! library you are using.
-//!
-//! [Ratatui]: https://github.com/ratatui/ratatui
-//! [examples]: https://github.com/ratatui/ratatui/blob/main/examples
-//! [examples readme]: https://github.com/ratatui/ratatui/blob/main/examples/README.md
+// TODO: use a more generic numeric data type for the data points throughout the lib
+// TODO: support dynamic filtering by line-tag
 
 #![feature(mpmc_channel)]
 #![feature(let_chains)]
@@ -460,6 +448,118 @@ fn render_scatter(frame: &mut Frame, area: Rect) {
         .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)));
 
     frame.render_widget(chart, area);
+}
+
+// TODO: make this use a &str instead of a string
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct IntermediateLogRepresentation {
+    x: String,
+    line_tags: Vec<String>,
+    graphs: Vec<String>,
+    lines: Vec<(String, String)>,
+}
+
+fn parse_log_line(log_line: &str) -> Option<IntermediateLogRepresentation> {
+    #[cfg(test)]
+    println!("got: {log_line:?}");
+    let key_values = log_line.trim().split(',');
+
+    let mut x_val = None;
+
+    let mut line_tags = vec![];
+    let mut graphs = vec![];
+    let mut lines = vec![];
+
+    for key_val in key_values {
+        let key_val = key_val.trim();
+
+        let splits: Vec<&str> = key_val.split('=').collect();
+
+        if splits.len() != 2 {
+            #[cfg(test)]
+            println!("Skipping {key_val:?} as not an '=' seperated key value pair");
+            return None;
+        }
+
+        let (key, val) = (splits[0], splits[1]);
+
+        match key.rsplit_once('.') {
+            Some((_, "x")) => {
+                if let Some(_) = x_val {
+                    #[cfg(test)]
+                    println!("Skipping log line due to duplicate '.x' values '{log_line:?}'");
+                    return None;
+                } else {
+                    x_val = Some(val.to_string());
+                }
+            }
+            Some((_, "linetag")) => line_tags.push(val.to_owned()),
+            Some((_, "graph")) => graphs.push(val.to_owned()),
+            Some((prefix, "line")) => {
+                lines.push((prefix.to_string(), val.to_owned()));
+            }
+            _ => {
+                #[cfg(test)]
+                println!("Skippig {key_val:?} as the key does not end with a known suffix");
+            }
+        }
+    }
+
+    if x_val.is_none() {
+        trace!("Skipping log line due to no '.x' value {log_line}");
+        return None;
+    }
+
+    Some(IntermediateLogRepresentation {
+        x: x_val.unwrap(),
+        line_tags,
+        graphs,
+        lines,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    const EXAMPLE_LOGS: &'static str = "
+ts=2025-06-08T01:12:25.595348617+08:00, ns.x=1749316345595348617, type.graph=EXECUTION_RUN, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=34272, p50-ns.line=34273, p90-ns.line=34274, p99-ns.line=34275, pMax-ns.line=34276
+ts=2025-06-08T01:12:25.595395830+08:00, ns.x=1749316345595395830, type.graph=EXECUTION_DOWNTIME, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=39822, p50-ns.line=39822, p90-ns.line=39822, p99-ns.line=39822, pMax-ns.line=0
+ts=2025-06-08T01:12:25.595395830+08:00, ns.x=1749316345595395830, type.graph=EXECUTION_RUN, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=7391, p50-ns.line=7391, p90-ns.line=7391, p99-ns.line=7391, pMax-ns.line=0
+ts=2025-06-08T01:12:25.595408051+08:00, ns.x=1749316345595408051, type.graph=EXECUTION_DOWNTIME, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=6120, p50-ns.line=6120, p90-ns.line=6120, p99-ns.line=6120, pMax-ns.line=0
+ts=2025-06-08T01:12:25.595408051+08:00, ns.x=1749316345595408051, type.graph=EXECUTION_RUN, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=6101, p50-ns.line=6101, p90-ns.line=6101, p99-ns.line=6101, pMax-ns.line=0
+ts=2025-06-08T01:12:25.595417751+08:00, ns.x=1749316345595417751, type.graph=EXECUTION_DOWNTIME, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=4080, p50-ns.line=4080, p90-ns.line=4080, p99-ns.line=4080, pMax-ns.line=0
+ts=2025-06-08T01:12:25.595417751+08:00, ns.x=1749316345595417751, type.graph=EXECUTION_RUN, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=5620, p50-ns.line=5620, p90-ns.line=5620, p99-ns.line=5620, pMax-ns.line=0
+ts=2025-06-08T01:12:25.595428712+08:00, ns.x=1749316345595428712, type.graph=EXECUTION_DOWNTIME, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=4730, p50-ns.line=4730, p90-ns.line=4730, p99-ns.line=4730, pMax-ns.line=0
+ts=2025-06-08T01:12:25.595428712+08:00, ns.x=1749316345595428712, type.graph=EXECUTION_RUN, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=6231, p50-ns.line=6231, p90-ns.line=6231, p99-ns.line=6231, pMax-ns.line=0
+ts=2025-06-08T01:12:25.595436992+08:00, ns.x=1749316345595436992, type.graph=EXECUTION_DOWNTIME, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=2720, p50-ns.line=2720, p90-ns.line=2720, p99-ns.line=2720, pMax-ns.line=0
+";
+
+    /// parse all of the logs into the final graph structure
+    #[test]
+    fn test_parse_example_logs() {}
+
+    #[test]
+    fn test_intermediate_parse() {
+        for (line, result) in EXAMPLE_LOGS.lines().skip(1).take(1).zip(
+            vec![IntermediateLogRepresentation {
+                x: "1749316345595348617".to_owned(),
+                line_tags: vec!["binf".to_string(), "PSWP-SOL/USDT".to_string()],
+                graphs: vec!["EXECUTION_RUN".to_string()],
+                lines: vec![
+                    ("p0-ns".to_string(), "34272".to_owned()),
+                    ("p50-ns".to_string(), "34273".to_owned()),
+                    ("p90-ns".to_string(), "34274".to_owned()),
+                    ("p99-ns".to_string(), "34275".to_owned()),
+                    ("pMax-ns".to_string(), "34276".to_owned()),
+                ],
+            }]
+            .iter(),
+        ) {
+            assert_eq!(parse_log_line(line), Some(result.clone()));
+        }
+    }
 }
 
 // Data from https://ourworldindata.org/space-exploration-satellites
