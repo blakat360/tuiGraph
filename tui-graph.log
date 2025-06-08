@@ -1,0 +1,52 @@
+19:02:00.781 [INFO] cli_log::init: Starting tui-graph v0.1.0 with log level DEBUG
+19:02:08.066 [DEBUG] tui_graph: rx: received data: 1 1
+
+19:02:08.066 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 4, matcher: CharPredicateSearcher { haystack: "1 1\n", char_indices: CharIndices { front_offset: 0, iter: Chars(['1', ' ', '1', '\n']) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:08.066 [DEBUG] tui_graph: rx: parsing led to Some(1.0) Some(1.0)
+19:02:09.318 [DEBUG] tui_graph: rx: received data: 5 5
+
+19:02:09.318 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 4, matcher: CharPredicateSearcher { haystack: "5 5\n", char_indices: CharIndices { front_offset: 0, iter: Chars(['5', ' ', '5', '\n']) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:09.318 [DEBUG] tui_graph: rx: parsing led to Some(5.0) Some(5.0)
+19:02:13.331 [DEBUG] tui_graph: rx: received data: 1.5 1.2
+
+19:02:13.331 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 8, matcher: CharPredicateSearcher { haystack: "1.5 1.2\n", char_indices: CharIndices { front_offset: 0, iter: Chars(['1', '.', '5', ' ', '1', '.', '2', '\n']) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:13.331 [DEBUG] tui_graph: rx: parsing led to Some(1.5) Some(1.2)
+19:02:13.832 [DEBUG] tui_graph: rx: received data: 
+19:02:13.832 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:13.832 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:13.832 [DEBUG] tui_graph: rx: received data: 
+19:02:13.832 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:13.833 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:13.833 [DEBUG] tui_graph: rx: received data: 
+19:02:13.833 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:13.833 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:13.833 [DEBUG] tui_graph: rx: received data: 
+19:02:13.833 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:13.833 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:14.083 [DEBUG] tui_graph: rx: received data: 
+19:02:14.084 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:14.084 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:14.084 [DEBUG] tui_graph: rx: received data: 
+19:02:14.084 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:14.084 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:14.084 [DEBUG] tui_graph: rx: received data: 
+19:02:14.084 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:14.084 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:14.334 [DEBUG] tui_graph: rx: received data: 
+19:02:14.334 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:14.334 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:14.334 [DEBUG] tui_graph: rx: received data: 
+19:02:14.334 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:14.334 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:14.584 [DEBUG] tui_graph: rx: received data: 
+19:02:14.584 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:14.584 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:14.584 [DEBUG] tui_graph: rx: received data: 
+19:02:14.584 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:14.584 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:14.835 [DEBUG] tui_graph: rx: received data: 
+19:02:14.835 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:14.835 [DEBUG] tui_graph: rx: parsing led to None None
+19:02:14.835 [DEBUG] tui_graph: rx: received data: 
+19:02:14.835 [DEBUG] tui_graph: rx: splits are SplitWhitespace { inner: Filter { iter: Split(SplitInternal { start: 0, end: 0, matcher: CharPredicateSearcher { haystack: "", char_indices: CharIndices { front_offset: 0, iter: Chars([]) } }, allow_trailing_empty: true, finished: false }) } }
+19:02:14.835 [DEBUG] tui_graph: rx: parsing led to None None

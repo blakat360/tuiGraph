@@ -1,9 +1,12 @@
 [package]
-name = "tuiGraph"
+name = "tui-graph"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.39", features = ["derive"] }
+cli-log = "2.1.0"
 color-eyre = "0.6.5"
+directories = "6.0.0"
+lazy_static = "1.5.0"
 ratatui = "0.29.0"

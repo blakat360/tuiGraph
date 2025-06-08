@@ -13,7 +13,12 @@
 //! [examples]: https://github.com/ratatui/ratatui/blob/main/examples
 //! [examples readme]: https://github.com/ratatui/ratatui/blob/main/examples/README.md
 
+#![feature(mpmc_channel)]
+use cli_log::*;
+use std::str::{Split, SplitWhitespace};
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
+use std::{io, thread};
 
 use color_eyre::Result;
 use ratatui::{
@@ -30,9 +35,11 @@ use clap::Parser;
 
 fn main() -> Result<()> {
     color_eyre::install()?;
+    init_cli_log!();
+
     let args = Args::parse();
     let terminal = ratatui::init();
-    let app_result = App::new().run(terminal, &args);
+    let app_result = App::new(args).run(terminal);
     ratatui::restore();
     app_result
 }
@@ -46,6 +53,9 @@ struct Args {
     /// number of cols to display panels in
     #[arg(short, long)]
     cols: u32,
+    /// max points to keep in each graph
+    #[arg(long)]
+    max_points: Option<usize>,
 }
 
 struct App {
@@ -54,6 +64,21 @@ struct App {
     signal2: SinSignal,
     data2: Vec<(f64, f64)>,
     window: [f64; 2],
+    line_data: Vec<(f64, f64)>,
+    stdin_rx: mpsc::Receiver<String>,
+    args: Args,
+}
+
+/// Uses blocking sends to forward lines received over stdin
+fn stdin_channel() -> mpsc::Receiver<String> {
+    let (tx, rx) = mpsc::sync_channel(0);
+    thread::spawn(move || loop {
+        let mut buffer = String::new();
+        io::stdin().read_line(&mut buffer).unwrap();
+        tx.send(buffer).unwrap();
+    });
+
+    rx
 }
 
 #[derive(Clone)]
@@ -85,7 +110,7 @@ impl Iterator for SinSignal {
 }
 
 impl App {
-    fn new() -> Self {
+    fn new(args: Args) -> Self {
         let mut signal1 = SinSignal::new(0.2, 3.0, 18.0);
         let mut signal2 = SinSignal::new(0.1, 2.0, 10.0);
         let data1 = signal1.by_ref().take(200).collect::<Vec<(f64, f64)>>();
@@ -96,14 +121,20 @@ impl App {
             signal2,
             data2,
             window: [0.0, 20.0],
+            line_data: Vec::new(),
+            stdin_rx: stdin_channel(),
+            args,
         }
     }
 
-    fn run(mut self, mut terminal: DefaultTerminal, args: &Args) -> Result<()> {
+    fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
         let tick_rate = Duration::from_millis(250);
         let mut last_tick = Instant::now();
+
         loop {
-            terminal.draw(|frame| self.draw(frame, args))?;
+            terminal.draw(|frame| self.draw(frame))?;
+
+            self.process_stdin_data();
 
             let timeout = tick_rate.saturating_sub(last_tick.elapsed());
             if event::poll(timeout)? {
@@ -113,10 +144,43 @@ impl App {
                     }
                 }
             }
+
             if last_tick.elapsed() >= tick_rate {
                 self.on_tick();
                 last_tick = Instant::now();
             }
+        }
+    }
+
+    fn process_stdin_data(&mut self) {
+        // we only care about the successful case
+        // we want to keep the graphs up even if the input channel died
+        // TODO: implement a popup + some status line to inform the user that no new data will arrive on disconnect
+        while let Ok(msg) = self.stdin_rx.try_recv() {
+            debug!("rx: received data: {}", &msg);
+
+            let mut splits = msg.split_whitespace();
+
+            debug!("rx: splits are {:?}", splits);
+
+            let get_f64 = |x: &mut SplitWhitespace| x.next().and_then(|x| x.parse::<f64>().ok());
+
+            let (a, b) = (get_f64(&mut splits), get_f64(&mut splits));
+
+            debug!("rx: parsing led to {:?} {:?}", a, b);
+
+            if let (Some(a), Some(b)) = (a, b) {
+                self.line_data.push((a, b));
+            }
+        }
+
+        if self
+            .args
+            .max_points
+            .is_some_and(|max_points| self.line_data.len() > max_points)
+        {
+            self.line_data
+                .drain(..(self.line_data.len() - self.args.max_points.unwrap() - 1));
         }
     }
 
@@ -131,14 +195,20 @@ impl App {
         self.window[1] += 1.0;
     }
 
-    fn draw(&self, frame: &mut Frame, args: &Args) {
+    fn draw(&self, frame: &mut Frame) {
         let panels = {
-            let rows = Layout::vertical(vec![Constraint::Ratio(1, args.rows); args.rows as usize])
-                .split(frame.area());
+            let rows = Layout::vertical(vec![
+                Constraint::Ratio(1, self.args.rows);
+                self.args.rows as usize
+            ])
+            .split(frame.area());
 
             let slices = (*rows).into_iter().map(|row| {
-                Layout::horizontal(vec![Constraint::Ratio(1, args.cols); args.cols as usize])
-                    .split(*row)
+                Layout::horizontal(vec![
+                    Constraint::Ratio(1, self.args.cols);
+                    self.args.cols as usize
+                ])
+                .split(*row)
             });
 
             let mut out = Vec::new();
@@ -157,7 +227,7 @@ impl App {
                 render_barchart(frame, panel);
             }),
             Box::new(|panel, frame| {
-                render_line_chart(frame, panel);
+                render_line_chart(frame, panel, &self.line_data);
             }),
             Box::new(|panel, frame| {
                 render_scatter(frame, panel);
@@ -254,29 +324,27 @@ fn render_barchart(frame: &mut Frame, bar_chart: Rect) {
     frame.render_widget(chart, bar_chart);
 }
 
-fn render_line_chart(frame: &mut Frame, area: Rect) {
+fn render_line_chart(frame: &mut Frame, area: Rect, data: &[(f64, f64)]) {
     let datasets = vec![Dataset::default()
         .name("Line from only 2 points".italic())
         .marker(symbols::Marker::Braille)
         .style(Style::default().fg(Color::Yellow))
         .graph_type(GraphType::Line)
-        .data(&[(1., 1.), (4., 4.)])];
+        .data(data)];
 
     let chart = Chart::new(datasets)
         .block(Block::bordered().title(Line::from("Line chart").cyan().bold().centered()))
         .x_axis(
             Axis::default()
                 .title("X Axis")
-                .style(Style::default().gray())
-                .bounds([0.0, 5.0])
-                .labels(["0".bold(), "2.5".into(), "5.0".bold()]),
+                .style(Style::default().gray()), // .bounds([0.0, 5.0]),
+                                                 // .labels(["0".bold(), "2.5".into(), "5.0".bold()]),
         )
         .y_axis(
             Axis::default()
                 .title("Y Axis")
-                .style(Style::default().gray())
-                .bounds([0.0, 5.0])
-                .labels(["0".bold(), "2.5".into(), "5.0".bold()]),
+                .style(Style::default().gray()), // .bounds([0.0, 5.0])
+                                                 // .labels(["0".bold(), "2.5".into(), "5.0".bold()]),
         )
         .legend_position(Some(LegendPosition::TopLeft))
         .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)));
