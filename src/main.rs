@@ -525,10 +525,9 @@ type GraphName = String;
 type LineName = String;
 type DataPoint = (f64, f64);
 
-fn update_state(
-    state: &mut HashMap<GraphName, HashMap<LineName, Vec<DataPoint>>>,
-    new_datum: &IntermediateLogRepresentation,
-) -> Result<()> {
+type State = HashMap<GraphName, HashMap<LineName, Vec<DataPoint>>>;
+
+fn update_state(state: &mut State, new_datum: &IntermediateLogRepresentation) -> Result<()> {
     let x = new_datum.x.parse::<f64>()?;
 
     let line_prefix = new_datum.line_tags.join("-");
@@ -542,7 +541,7 @@ fn update_state(
         let graph = state.get_mut(graph).unwrap();
 
         for (line, y) in new_datum.lines.iter() {
-            let line_name = line_prefix.clone() + &line;
+            let line_name = line_prefix.clone() + "-" + &line;
 
             let y = {
                 let y = y.parse::<f64>();
@@ -570,6 +569,8 @@ fn update_state(
 #[cfg(test)]
 mod tests {
 
+    use std::ascii::AsciiExt;
+
     use super::*;
 
     const EXAMPLE_LOGS: &'static str = "
@@ -585,9 +586,185 @@ ts=2025-06-08T01:12:25.595428712+08:00, ns.x=1749316345595428712, type.graph=EXE
 ts=2025-06-08T01:12:25.595436992+08:00, ns.x=1749316345595436992, type.graph=EXECUTION_DOWNTIME, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=2720, p50-ns.line=2720, p90-ns.line=2720, p99-ns.line=2720, pMax-ns.line=0
 ";
 
+    fn state_after_log_line_parse() -> State {
+        let mut state = HashMap::new();
+
+        let mut execution_downtime = HashMap::new();
+
+        execution_downtime.insert(
+            "binf-PSWP-SOL/USDT-p0-ns".to_owned(),
+            vec![
+                (1749316345595395830.0, 39822.0),
+                (1749316345595408051.0, 6120.0),
+                (1749316345595417751.0, 4080.0),
+                (1749316345595428712.0, 4730.0),
+                (1749316345595436992.0, 2720.0),
+            ],
+        );
+        execution_downtime.insert(
+            "binf-PSWP-SOL/USDT-p50-ns".to_owned(),
+            vec![
+                (1749316345595395830.0, 39822.0),
+                (1749316345595408051.0, 6120.0),
+                (1749316345595417751.0, 4080.0),
+                (1749316345595428712.0, 4730.0),
+                (1749316345595436992.0, 2720.0),
+            ],
+        );
+        execution_downtime.insert(
+            "binf-PSWP-SOL/USDT-p90-ns".to_owned(),
+            vec![
+                (1749316345595395830.0, 39822.0),
+                (1749316345595408051.0, 6120.0),
+                (1749316345595417751.0, 4080.0),
+                (1749316345595428712.0, 4730.0),
+                (1749316345595436992.0, 2720.0),
+            ],
+        );
+        execution_downtime.insert(
+            "binf-PSWP-SOL/USDT-p99-ns".to_owned(),
+            vec![
+                (1749316345595395830.0, 39822.0),
+                (1749316345595408051.0, 6120.0),
+                (1749316345595417751.0, 4080.0),
+                (1749316345595428712.0, 4730.0),
+                (1749316345595436992.0, 2720.0),
+            ],
+        );
+        execution_downtime.insert(
+            "binf-PSWP-SOL/USDT-pMax-ns".to_owned(),
+            vec![
+                (1749316345595395830.0, 0.0),
+                (1749316345595408051.0, 0.0),
+                (1749316345595417751.0, 0.0),
+                (1749316345595428712.0, 0.0),
+                (1749316345595436992.0, 0.0),
+            ],
+        );
+
+        state.insert("EXECUTION_DOWNTIME".to_owned(), execution_downtime);
+
+        let mut execution_run = HashMap::new();
+
+        execution_run.insert(
+            "binf-PSWP-SOL/USDT-p0-ns".to_owned(),
+            vec![
+                (1749316345595348617.0, 34272.0),
+                (1749316345595395830.0, 7391.0),
+                (1749316345595408051.0, 6101.0),
+                (1749316345595417751.0, 5620.0),
+                (1749316345595428712.0, 6231.0),
+            ],
+        );
+
+        execution_run.insert(
+            "binf-PSWP-SOL/USDT-p50-ns".to_owned(),
+            vec![
+                (1749316345595348617.0, 34273.0),
+                (1749316345595395830.0, 7391.0),
+                (1749316345595408051.0, 6101.0),
+                (1749316345595417751.0, 5620.0),
+                (1749316345595428712.0, 6231.0),
+            ],
+        );
+
+        execution_run.insert(
+            "binf-PSWP-SOL/USDT-p90-ns".to_owned(),
+            vec![
+                (1749316345595348617.0, 34274.0),
+                (1749316345595395830.0, 7391.0),
+                (1749316345595408051.0, 6101.0),
+                (1749316345595417751.0, 5620.0),
+                (1749316345595428712.0, 6231.0),
+            ],
+        );
+
+        execution_run.insert(
+            "binf-PSWP-SOL/USDT-p99-ns".to_owned(),
+            vec![
+                (1749316345595348617.0, 34275.0),
+                (1749316345595395830.0, 7391.0),
+                (1749316345595408051.0, 6101.0),
+                (1749316345595417751.0, 5620.0),
+                (1749316345595428712.0, 6231.0),
+            ],
+        );
+
+        execution_run.insert(
+            "binf-PSWP-SOL/USDT-pMax-ns".to_owned(),
+            vec![
+                (1749316345595348617.0, 34276.0),
+                (1749316345595395830.0, 0.0),
+                (1749316345595408051.0, 0.0),
+                (1749316345595417751.0, 0.0),
+                (1749316345595428712.0, 0.0),
+            ],
+        );
+
+        state.insert("EXECUTION_RUN".to_owned(), execution_run);
+
+        state
+    }
+
     /// parse all of the logs into the final graph structure
     #[test]
-    fn test_parse_example_logs() {}
+    fn test_parse_example_logs() {
+        let mut state = HashMap::new();
+
+        for line in EXAMPLE_LOGS.lines() {
+            let Some(intermediate_representation) = parse_log_line(line) else {
+                continue;
+            };
+
+            let _ = update_state(&mut state, &intermediate_representation);
+        }
+
+        let result = state_after_log_line_parse();
+        assert_eq!(
+            state["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-p0-ns"],
+            result["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-p0-ns"]
+        );
+        assert_eq!(
+            state["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-p50-ns"],
+            result["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-p50-ns"]
+        );
+        assert_eq!(
+            state["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-p90-ns"],
+            result["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-p90-ns"]
+        );
+        assert_eq!(
+            state["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-p99-ns"],
+            result["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-p99-ns"]
+        );
+        assert_eq!(
+            state["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-pMax-ns"],
+            result["EXECUTION_RUN"]["binf-PSWP-SOL/USDT-pMax-ns"]
+        );
+
+        assert_eq!(
+            state["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-p0-ns"],
+            result["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-p0-ns"]
+        );
+        assert_eq!(
+            state["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-p50-ns"],
+            result["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-p50-ns"]
+        );
+        assert_eq!(
+            state["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-p90-ns"],
+            result["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-p90-ns"]
+        );
+        assert_eq!(
+            state["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-p99-ns"],
+            result["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-p99-ns"]
+        );
+        assert_eq!(
+            state["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-pMax-ns"],
+            result["EXECUTION_DOWNTIME"]["binf-PSWP-SOL/USDT-pMax-ns"]
+        );
+
+        assert_eq!(state["EXECUTION_RUN"], result["EXECUTION_RUN"]);
+        assert_eq!(state, result);
+    }
 
     #[test]
     fn test_intermediate_parse() {
