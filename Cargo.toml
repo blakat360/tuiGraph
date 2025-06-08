@@ -3,6 +3,9 @@ name = "tui-graph"
 version = "0.1.0"
 edition = "2021"
 
+[toolchain]
+channel = "nightly"
+
 [dependencies]
 clap = { version = "4.5.39", features = ["derive"] }
 cli-log = "2.1.0"

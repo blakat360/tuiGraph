@@ -14,8 +14,11 @@
 //! [examples readme]: https://github.com/ratatui/ratatui/blob/main/examples/README.md
 
 #![feature(mpmc_channel)]
+#![feature(let_chains)]
+
 use cli_log::*;
-use std::str::{Split, SplitWhitespace};
+use std::collections::VecDeque;
+use std::str::SplitWhitespace;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use std::{io, thread};
@@ -157,19 +160,14 @@ impl App {
         // we want to keep the graphs up even if the input channel died
         // TODO: implement a popup + some status line to inform the user that no new data will arrive on disconnect
         while let Ok(msg) = self.stdin_rx.try_recv() {
-            debug!("rx: received data: {}", &msg);
-
             let mut splits = msg.split_whitespace();
-
-            debug!("rx: splits are {:?}", splits);
 
             let get_f64 = |x: &mut SplitWhitespace| x.next().and_then(|x| x.parse::<f64>().ok());
 
             let (a, b) = (get_f64(&mut splits), get_f64(&mut splits));
 
-            debug!("rx: parsing led to {:?} {:?}", a, b);
-
             if let (Some(a), Some(b)) = (a, b) {
+                debug!("pushing ({a:?}, {b:?})");
                 self.line_data.push((a, b));
             }
         }
@@ -203,7 +201,7 @@ impl App {
             ])
             .split(frame.area());
 
-            let slices = (*rows).into_iter().map(|row| {
+            let slices = (*rows).iter().map(|row| {
                 Layout::horizontal(vec![
                     Constraint::Ratio(1, self.args.cols);
                     self.args.cols as usize
@@ -324,7 +322,74 @@ fn render_barchart(frame: &mut Frame, bar_chart: Rect) {
     frame.render_widget(chart, bar_chart);
 }
 
+struct MinMax {
+    min: f64,
+    max: f64,
+}
+
+impl MinMax {
+    fn range(&self) -> f64 {
+        self.max - self.min
+    }
+
+    fn bounds(&self, buffer: f64) -> (f64, f64) {
+        assert!(buffer >= 0.0);
+
+        let padding = self.range() * buffer;
+
+        (self.min - padding, self.max + padding)
+    }
+
+    fn gen_labels(&self, n_labels: usize, buffer: f64) -> Vec<String> {
+        assert!(n_labels > 2);
+
+        let (min_bound, max_bound) = self.bounds(buffer);
+
+        let range = max_bound - min_bound;
+
+        let distance = range / (n_labels - 1) as f64;
+
+        (0..n_labels)
+            .map(|i| (min_bound + (i as f64 * distance)).to_string())
+            .collect()
+    }
+}
+
+// TODO do this in one pass
+fn get_min_max<'a>(it: impl Iterator<Item = &'a f64> + Clone) -> Option<MinMax> {
+    let min = it.clone().min_by(|a, b| a.partial_cmp(b).unwrap());
+    let max = it.clone().max_by(|a, b| a.partial_cmp(b).unwrap());
+
+    if let (Some(min), Some(max)) = (min, max) {
+        return Some(MinMax {
+            min: *min,
+            max: *max,
+        });
+    }
+
+    None
+}
+
+struct Bounds {
+    x: MinMax,
+    y: MinMax,
+}
+
 fn render_line_chart(frame: &mut Frame, area: Rect, data: &[(f64, f64)]) {
+    debug!("data to draw is: {data:?}");
+
+    if data.is_empty() {
+        return;
+    }
+
+    let min_max_x = get_min_max(data.iter().map(|(x, _)| x));
+    let min_max_y = get_min_max(data.iter().map(|(_, y)| y));
+
+    let bounds = Bounds {
+        x: min_max_x.unwrap(),
+        y: min_max_y.unwrap(),
+    };
+
     let datasets = vec![Dataset::default()
         .name("Line from only 2 points".italic())
         .marker(symbols::Marker::Braille)
@@ -337,14 +402,16 @@ fn render_line_chart(frame: &mut Frame, area: Rect, data: &[(f64, f64)]) {
         .x_axis(
             Axis::default()
                 .title("X Axis")
-                .style(Style::default().gray()), // .bounds([0.0, 5.0]),
-                                                 // .labels(["0".bold(), "2.5".into(), "5.0".bold()]),
+                .style(Style::default().gray())
+                .bounds(bounds.x.bounds(0.0).into())
+                .labels(bounds.x.gen_labels(3, 0.0)),
         )
         .y_axis(
             Axis::default()
                 .title("Y Axis")
-                .style(Style::default().gray()), // .bounds([0.0, 5.0])
-                                                 // .labels(["0".bold(), "2.5".into(), "5.0".bold()]),
+                .style(Style::default().gray())
+                .bounds(bounds.y.bounds(0.0).into())
+                .labels(bounds.y.gen_labels(3, 0.0)),
         )
         .legend_position(Some(LegendPosition::TopLeft))
         .hidden_legend_constraints((Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)));
