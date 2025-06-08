@@ -178,7 +178,7 @@ impl App {
             .is_some_and(|max_points| self.line_data.len() > max_points)
         {
             self.line_data
-                .drain(..(self.line_data.len() - self.args.max_points.unwrap() - 1));
+                .drain(..(self.line_data.len() - self.args.max_points.unwrap()));
         }
     }
 
