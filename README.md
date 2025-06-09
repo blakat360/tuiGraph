@@ -1,15 +1,29 @@
-# To run with logging + nc as input source
+# What is this?
 
-`nc -l 0.0.0.0 5555 | TUI_GRAPH_LOG=debug cargo +nightly run -- -r 4 -c 4`
+The idea is that the app stores a hashmap of graph -> line -> data.
 
-# To run with predefined input
+These are created using the suffixes:
+- linetag: prepended to any "line" entries
+- line
+- graph
+
+So something like this:
+```
+ts=2025-06-08T01:12:25.595348617+08:00, ns.x=1749316345595348617, type.graph=EXECUTION_RUN, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=34272, p50-ns.line=34273, p90-ns.line=34274, p99-ns.line=34275, pMax-ns.line=34276
+```
+
+defines 1 graph with 5 lines (one for each percentile).
+
+The app keeps showing you that one graph until it sees another log line:
 
 ```
-TUI_GRAPH_LOG=debug cargo +nightly run -- -r 4 -c 4 << END
-1 1
-2 2
-3.5 4.5
-END
+ts=2025-06-08T01:12:25.595395830+08:00, ns.x=1749316345595395830, type.graph=EXECUTION_DOWNTIME, exchange.linetag=binf, symbol.linetag=PSWP-SOL/USDT, p0-ns.line=39822, p50-ns.line=39822, p90-ns.line=39822, p99-ns.line=39822, pMax-ns.line=0
 ```
 
-Or just cat something in
+Which defines a second "EXECUTION_RUN" graph with another 5 lines.
+Changing the line tag value to lets say "bina" would create a new line on the same graph.
+The main pitch is no persister process or SQL queries needed for a grafana-like experience, and if you want to change what you report in your app, all your telemetry graphs pull in the new data alongside the old without any changes.
+
+# To run with dev example with app logging
+
+`cat example_logs.txt | sed 's/.*STATS://g' | TUI_GRAPH_LOG=debug cargo run -- -r 2 -c 1`
