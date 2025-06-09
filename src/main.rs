@@ -61,7 +61,7 @@ struct App {
 
 /// Uses blocking sends to forward lines received over stdin
 fn stdin_channel() -> mpsc::Receiver<String> {
-    let (tx, rx) = mpsc::sync_channel(0);
+    let (tx, rx) = mpsc::sync_channel(1000);
     thread::spawn(move || loop {
         let mut buffer = String::new();
         io::stdin().read_line(&mut buffer).unwrap();
