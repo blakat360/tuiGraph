@@ -61,7 +61,7 @@ struct App {
 
 /// Uses blocking sends to forward lines received over stdin
 fn stdin_channel() -> mpsc::Receiver<String> {
-    let (tx, rx) = mpsc::sync_channel(1000);
+    let (tx, rx) = mpsc::sync_channel(10000);
     thread::spawn(move || loop {
         let mut buffer = String::new();
         io::stdin().read_line(&mut buffer).unwrap();
@@ -81,7 +81,7 @@ impl App {
     }
 
     fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
-        let tick_rate = Duration::from_millis(250);
+        let tick_rate = Duration::from_millis(10);
         let mut last_tick = Instant::now();
 
         loop {
